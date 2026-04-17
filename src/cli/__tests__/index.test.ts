@@ -234,6 +234,21 @@ describe("normalizeCodexLaunchArgs", () => {
       "--yolo",
     ]);
   });
+
+  it("strips omx-only continue and verbose flags before launching codex", () => {
+    assert.deepEqual(normalizeCodexLaunchArgs(["--continue", "--verbose", "--yolo"]), [
+      "--yolo",
+    ]);
+  });
+
+  it("preserves literal omx-like flags after --", () => {
+    assert.deepEqual(normalizeCodexLaunchArgs(["--", "--continue", "--verbose", "--yolo"]), [
+      "--",
+      "--continue",
+      "--verbose",
+      "--yolo",
+    ]);
+  });
 });
 
 describe("resolveLeaderLaunchPolicyOverride", () => {
@@ -1010,6 +1025,34 @@ describe("resolveCliInvocation", () => {
     assert.deepEqual(resolveCliInvocation(["-v"]), {
       command: "version",
       launchArgs: [],
+    });
+  });
+
+  it("resolves top-level --continue to resume --last while preserving launch flags", () => {
+    assert.deepEqual(resolveCliInvocation(["--tmux", "--madmax", "--high", "--continue", "--yolo"]), {
+      command: "resume",
+      launchArgs: ["--last", "--tmux", "--madmax", "--high", "--yolo"],
+    });
+  });
+
+  it("resolves launch --continue alias and strips omx-only verbose", () => {
+    assert.deepEqual(resolveCliInvocation(["launch", "--continue", "--verbose", "--yolo"]), {
+      command: "resume",
+      launchArgs: ["--last", "--yolo"],
+    });
+  });
+
+  it("treats top-level --continue --verbose as a resume shortcut", () => {
+    assert.deepEqual(resolveCliInvocation(["--continue", "--verbose"]), {
+      command: "resume",
+      launchArgs: ["--last"],
+    });
+  });
+
+  it("preserves literal --continue after -- for launch passthrough", () => {
+    assert.deepEqual(resolveCliInvocation(["--", "--continue", "--yolo"]), {
+      command: "launch",
+      launchArgs: ["--", "--continue", "--yolo"],
     });
   });
 

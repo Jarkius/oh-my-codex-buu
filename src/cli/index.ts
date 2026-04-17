@@ -193,6 +193,8 @@ Options:
                 Workers get the configured low-complexity team model; leader model unchanged
   --madmax-spark  spark model for workers + bypass approvals for leader and workers
                 (shorthand for: --spark --madmax)
+  --continue     Resume the most recent interactive Codex session
+                (shorthand for: omx resume --last)
   --notify-temp  Enable temporary notification routing for this run/session only
   --tmux         Launch the interactive leader session in detached tmux
   --discord      Select Discord provider for temporary notification mode
@@ -206,7 +208,7 @@ Options:
   --dry-run     Show what would be done without doing it
   --keep-config Skip config.toml cleanup during uninstall
   --purge       Remove .omx/ cache directory during uninstall
-  --verbose     Show detailed output
+  --verbose     Show detailed output (OMX-managed commands only)
   --scope       Setup scope for "omx setup" only:
                 user | project
   --skill-target
@@ -403,11 +405,44 @@ export function resolveCliInvocation(args: string[]): ResolvedCliInvocation {
   if (firstArg === "--version" || firstArg === "-v") {
     return { command: "version", launchArgs: [] };
   }
+  const parseContinueLaunchArgs = (launchArgs: string[]): ResolvedCliInvocation => {
+    const remainingArgs: string[] = [];
+    let continueRequested = false;
+    let passthroughOnly = false;
+
+    for (const arg of launchArgs) {
+      if (passthroughOnly) {
+        remainingArgs.push(arg);
+        continue;
+      }
+
+      if (arg === "--") {
+        passthroughOnly = true;
+        remainingArgs.push(arg);
+        continue;
+      }
+
+      if (arg === "--continue") {
+        continueRequested = true;
+        continue;
+      }
+
+      if (arg === "--verbose") {
+        continue;
+      }
+
+      remainingArgs.push(arg);
+    }
+
+    return continueRequested
+      ? { command: "resume", launchArgs: ["--last", ...remainingArgs] }
+      : { command: "launch", launchArgs: remainingArgs };
+  };
   if (!firstArg || firstArg.startsWith("--")) {
-    return { command: "launch", launchArgs: firstArg ? args : [] };
+    return parseContinueLaunchArgs(firstArg ? args : []);
   }
   if (firstArg === "launch") {
-    return { command: "launch", launchArgs: args.slice(1) };
+    return parseContinueLaunchArgs(args.slice(1));
   }
   if (firstArg === "exec") {
     return { command: "exec", launchArgs: args.slice(1) };
@@ -1134,8 +1169,20 @@ export function normalizeCodexLaunchArgs(args: string[]): string[] {
   let wantsBypass = false;
   let hasBypass = false;
   let reasoningMode: ReasoningMode | null = null;
+  let passthroughOnly = false;
 
   for (const arg of launchPolicyParsed.remainingArgs) {
+    if (passthroughOnly) {
+      normalized.push(arg);
+      continue;
+    }
+
+    if (arg === "--") {
+      passthroughOnly = true;
+      normalized.push(arg);
+      continue;
+    }
+
     if (arg === MADMAX_FLAG) {
       wantsBypass = true;
       continue;
@@ -1168,6 +1215,10 @@ export function normalizeCodexLaunchArgs(args: string[]): string[] {
     if (arg === MADMAX_SPARK_FLAG) {
       // Bypass applies to leader; spark model goes to workers only. Consume flag.
       wantsBypass = true;
+      continue;
+    }
+
+    if (arg === "--continue" || arg === "--verbose") {
       continue;
     }
 
