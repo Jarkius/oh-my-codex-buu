@@ -28,6 +28,7 @@ export interface FollowupStaffingPlan {
   availableAgentTypes: string[];
   recommendedHeadcount: number;
   allocations: FollowupAllocation[];
+  policySummary: string;
   rosterSummary: string;
   staffingSummary: string;
   launchHints: FollowupLaunchHints;
@@ -41,6 +42,7 @@ export interface ResolveAvailableAgentTypesOptions {
 export interface BuildFollowupStaffingPlanOptions {
   workerCount?: number;
   fallbackRole?: string;
+  wakeDirectives?: string[];
 }
 
 export interface ApprovedExecutionFollowupContext {
@@ -177,24 +179,51 @@ function buildLaunchHints(
 function buildVerificationPlan(
   mode: FollowupMode,
   allocations: readonly FollowupAllocation[],
+  policySignals: {
+    quarantine: boolean;
+    persistentWorkflow: boolean;
+    protectRuntimeSurface: boolean;
+  },
 ): FollowupVerificationPlan {
   if (mode === 'team') {
     const qualityLane = allocations.find((allocation) => allocation.reason.includes('verification'));
     return {
-      summary: 'Use team as the coordinated execution and verification owner: delivery lanes run in parallel while a dedicated verification lane captures fresh evidence before shutdown.',
+      summary: [
+        'Use team as the coordinated execution and verification owner: delivery lanes run in parallel while a dedicated verification lane captures fresh evidence before shutdown.',
+        policySignals.quarantine
+          ? 'Quarantine policy active: include compatibility review before absorbed behavior is treated as ready.'
+          : '',
+        policySignals.protectRuntimeSurface
+          ? 'Runtime-surface protection active: preserve the OMX operator contract while parallel work proceeds.'
+          : '',
+      ].filter(Boolean).join(' '),
       checkpoints: [
         'Launch via `omx team ...` (or `$team ...`) so the team runtime owns both parallel delivery and coordinated verification.',
         `Keep ${qualityLane?.role ?? 'the verification lane'} focused on tests, regression coverage, and evidence capture before team shutdown.`,
+        ...(policySignals.quarantine
+          ? ['Require a quarantine/compatibility pass before absorbed capabilities are promoted to active production behavior.']
+          : []),
         'Escalate to a separate Ralph run only when a later manual follow-up still needs a persistent single-owner verification/fix loop.',
       ],
     };
   }
 
   return {
-    summary: 'Use Ralph as the persistent execution and verification owner: implementation happens first, then evidence/regression checks, then final sign-off.',
+    summary: [
+      'Use Ralph as the persistent execution and verification owner: implementation happens first, then evidence/regression checks, then final sign-off.',
+      policySignals.persistentWorkflow
+        ? 'Persistent workflow policy active: keep execution and verification stage transitions explicit.'
+        : '',
+      policySignals.protectRuntimeSurface
+        ? 'Runtime-surface protection active: prefer preserving OMX contracts over opportunistic side changes.'
+        : '',
+    ].filter(Boolean).join(' '),
     checkpoints: [
       'Run fresh verification commands before claiming completion.',
       'Keep the evidence/regression lane current with test/build output.',
+      ...(policySignals.quarantine
+        ? ['Re-check provenance and compatibility before adopting absorbed behavior as complete.']
+        : []),
       'Finish with the final sign-off lane reviewing completion evidence against acceptance criteria.',
     ],
   };
@@ -233,7 +262,21 @@ export function buildFollowupStaffingPlan(
   options: BuildFollowupStaffingPlanOptions = {},
 ): FollowupStaffingPlan {
   const fallbackRole = options.fallbackRole ?? 'executor';
-  const workerCount = Math.max(1, options.workerCount ?? (mode === 'team' ? 2 : 3));
+  const rawWorkerCount = Math.max(1, options.workerCount ?? (mode === 'team' ? 2 : 3));
+  const wakeDirectives = options.wakeDirectives ?? [];
+  const normalizedWakeText = wakeDirectives.join(' ').toLowerCase();
+  const policySignals = {
+    quarantine:
+      /quarantine|digest foreign workflows|provenance/.test(normalizedWakeText),
+    persistentWorkflow:
+      /persist workflow state|explicit clarify -> plan -> execute -> verify|stage transitions/.test(normalizedWakeText),
+    protectRuntimeSurface:
+      /operator-facing runtime surface|omx as the operator-facing/.test(normalizedWakeText),
+  };
+  const workerCount =
+    mode === 'team' && (policySignals.quarantine || policySignals.persistentWorkflow)
+      ? Math.max(rawWorkerCount, 3)
+      : rawWorkerCount;
   const primaryRoute = routeTaskToRole(
     task,
     task,
@@ -255,8 +298,15 @@ export function buildFollowupStaffingPlan(
       mergeAllocation(allocations, qualityRole, 1, 'verification + regression lane');
     }
     if (workerCount >= 3) {
-      const specialistRole = pickSpecialistRole(task, availableAgentTypes, primaryRole);
-      mergeAllocation(allocations, specialistRole, 1, 'specialist support lane');
+      const specialistRole = policySignals.quarantine
+        ? chooseAvailableRole(availableAgentTypes, ['architect', 'researcher', 'debugger'], primaryRole)
+        : pickSpecialistRole(task, availableAgentTypes, primaryRole);
+      mergeAllocation(
+        allocations,
+        specialistRole,
+        1,
+        policySignals.quarantine ? 'quarantine + compatibility lane' : 'specialist support lane',
+      );
     }
     if (workerCount >= 4) {
       mergeAllocation(allocations, primaryRole, workerCount - 3, 'extra implementation capacity');
@@ -276,14 +326,21 @@ export function buildFollowupStaffingPlan(
     }
   }
 
+  const policySummary = [
+    policySignals.quarantine ? 'quarantine-aware absorption active' : '',
+    policySignals.persistentWorkflow ? 'persistent workflow policy active' : '',
+    policySignals.protectRuntimeSurface ? 'runtime-surface protection active' : '',
+  ].filter(Boolean).join('; ') || 'default execution policy';
+
   return {
     mode,
     availableAgentTypes: [...availableAgentTypes],
     recommendedHeadcount: workerCount,
     allocations,
+    policySummary,
     rosterSummary: availableAgentTypes.join(', '),
     staffingSummary: summarizeAllocations(allocations),
     launchHints: buildLaunchHints(mode, task, workerCount, fallbackRole),
-    verificationPlan: buildVerificationPlan(mode, allocations),
+    verificationPlan: buildVerificationPlan(mode, allocations, policySignals),
   };
 }

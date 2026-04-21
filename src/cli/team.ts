@@ -10,6 +10,7 @@ import type { TeamEvent } from '../team/state.js';
 import { parseWorktreeMode, type WorktreeMode } from '../team/worktree.js';
 import { classifyTaskSize } from '../hooks/task-size-detector.js';
 import { readApprovedExecutionLaunchHint } from '../planning/artifacts.js';
+import { deriveWakeDirectives, readActiveAbsorptionForm } from '../absorption/storage.js';
 import { routeTaskToRole } from '../team/role-router.js';
 import { allocateTasksToWorkers } from '../team/allocation-policy.js';
 import {
@@ -1203,6 +1204,7 @@ async function ensureTeamModeState(
   parsed: ParsedTeamArgs,
   tasks?: Array<{ role?: string }>,
 ): Promise<void> {
+  const wakeDirectives = deriveWakeDirectives(await readActiveAbsorptionForm(process.cwd()));
   const fallbackRole = resolveImplicitTeamFallbackRole(parsed.agentType, parsed.explicitAgentType);
   const roleDistribution = tasks && tasks.length > 0
     ? [...new Set(tasks.map(t => t.role ?? parsed.agentType))].join(',')
@@ -1212,6 +1214,7 @@ async function ensureTeamModeState(
   const staffingPlan = buildFollowupStaffingPlan('team', parsed.task, availableAgentTypes, {
     workerCount: parsed.workerCount,
     fallbackRole,
+    wakeDirectives,
   });
   const currentPhase = parsed.teamName
     ? (await readTeamPhase(parsed.teamName, process.cwd()))?.current_phase ?? 'team-exec'
@@ -1231,6 +1234,8 @@ async function ensureTeamModeState(
       available_agent_types: availableAgentTypes,
       staffing_summary: staffingPlan.staffingSummary,
       staffing_allocations: staffingPlan.allocations,
+      absorption_wake_directives: wakeDirectives,
+      absorption_policy_summary: staffingPlan.policySummary,
       completed_at: completionStamp,
     });
     return;
@@ -1246,6 +1251,8 @@ async function ensureTeamModeState(
     available_agent_types: availableAgentTypes,
     staffing_summary: staffingPlan.staffingSummary,
     staffing_allocations: staffingPlan.allocations,
+    absorption_wake_directives: wakeDirectives,
+    absorption_policy_summary: staffingPlan.policySummary,
     completed_at: completionStamp,
   });
 
@@ -1332,6 +1339,7 @@ async function renderStartSummary(runtime: TeamRuntime, staffingPlan?: FollowupS
   if (staffingPlan) {
     console.log(`available_agent_types: ${staffingPlan.rosterSummary}`);
     console.log(`staffing_plan: ${staffingPlan.staffingSummary}`);
+    console.log(`policy_summary: ${staffingPlan.policySummary}`);
   }
 
   const snapshot = await monitorTeam(runtime.teamName, runtime.cwd);
@@ -1605,6 +1613,7 @@ export async function teamCommand(args: string[], _options: TeamCliOptions = {})
     const staffingPlan = buildFollowupStaffingPlan('team', runtime.config.task, availableAgentTypes, {
       workerCount: runtime.config.worker_count,
       fallbackRole: resolveImplicitTeamFallbackRole(runtime.config.agent_type, false),
+      wakeDirectives: deriveWakeDirectives(await readActiveAbsorptionForm(cwd)),
     });
     await renderStartSummary(runtime, staffingPlan);
     return;
@@ -1657,6 +1666,7 @@ export async function teamCommand(args: string[], _options: TeamCliOptions = {})
   const staffingPlan = buildFollowupStaffingPlan('team', parsed.task, availableAgentTypes, {
     workerCount: executionPlan.workerCount,
     fallbackRole: resolveImplicitTeamFallbackRole(parsed.agentType, parsed.explicitAgentType),
+    wakeDirectives: deriveWakeDirectives(await readActiveAbsorptionForm(cwd)),
   });
   const runtime = await startTeam(
     parsed.teamName,

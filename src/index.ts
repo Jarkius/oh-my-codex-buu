@@ -1,13 +1,10 @@
 /**
- * oh-my-codex - Multi-agent orchestration for OpenAI Codex CLI
+ * oh-my-codex-buu - Buu-style absorption layer for Codex-native orchestration
  *
  * This package provides:
- * - 30+ specialized agent prompts as Codex CLI slash commands
- * - 35+ workflow skills as SKILL.md files
- * - AGENTS.md orchestration brain
- * - MCP servers for state management, project memory, and notepad
- * - CLI tool (omx) for setup, diagnostics, and management
- * - Notification hooks for workflow tracking
+ * - the inherited OMX runtime body from oh-my-codex
+ * - a Buu-style absorption registry and cocoon model
+ * - philosophy and workflow scaffolding for selective capability fusion
  */
 
 export { setup } from './cli/setup.js';
@@ -17,3 +14,4 @@ export { mergeConfig } from './config/generator.js';
 export { AGENT_DEFINITIONS, type AgentDefinition } from './agents/definitions.js';
 export { generateAgentToml, installNativeAgentConfigs } from './agents/native-config.js';
 export { hudCommand } from './hud/index.js';
+export * from './absorption/index.js';

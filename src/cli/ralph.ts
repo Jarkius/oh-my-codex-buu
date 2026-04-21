@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { startMode, updateModeState } from '../modes/base.js';
 import { readApprovedExecutionLaunchHint, type ApprovedExecutionLaunchHint } from '../planning/artifacts.js';
 import { ensureCanonicalRalphArtifacts } from '../ralph/persistence.js';
+import { deriveWakeDirectives, readActiveAbsorptionForm } from '../absorption/storage.js';
 import {
   buildFollowupStaffingPlan,
   resolveAvailableAgentTypes,
@@ -203,7 +204,12 @@ export function buildRalphChangedFilesSeedContents(): string {
 
 export function buildRalphAppendInstructions(
   task: string,
-  options: { changedFilesPath: string; noDeslop: boolean; approvedHint?: ApprovedExecutionLaunchHint | null },
+  options: {
+    changedFilesPath: string;
+    noDeslop: boolean;
+    approvedHint?: ApprovedExecutionLaunchHint | null;
+    wakeDirectives?: string[];
+  },
 ): string {
   return [
     '<ralph_native_subagents>',
@@ -214,6 +220,9 @@ export function buildRalphAppendInstructions(
     '- Treat `.omx/state/subagent-tracking.json` as the native subagent activity ledger for this session.',
     '- Do not declare the task complete, and do not transition into final verification/completion, while active native subagent threads are still running.',
     '- Before closing a verification wave, confirm that active native subagent threads have drained.',
+    ...(options.wakeDirectives && options.wakeDirectives.length > 0
+      ? ['Active absorption wake directives:', ...options.wakeDirectives.map((directive) => `- ${directive}`)]
+      : []),
     ...buildRalphApprovedContextLines(options.approvedHint ?? null),
     'Final deslop guidance:',
     options.noDeslop
@@ -232,7 +241,11 @@ export function buildRalphAppendInstructions(
 async function writeRalphSessionFiles(
   cwd: string,
   task: string,
-  options: { noDeslop: boolean; approvedHint?: ApprovedExecutionLaunchHint | null },
+  options: {
+    noDeslop: boolean;
+    approvedHint?: ApprovedExecutionLaunchHint | null;
+    wakeDirectives?: string[];
+  },
 ): Promise<RalphSessionFiles> {
   const dir = join(cwd, '.omx', 'ralph');
   await mkdir(dir, { recursive: true });
@@ -241,7 +254,12 @@ async function writeRalphSessionFiles(
   await writeFile(changedFilesPath, `${buildRalphChangedFilesSeedContents()}\n`);
   await writeFile(
     instructionsPath,
-    `${buildRalphAppendInstructions(task, { changedFilesPath: '.omx/ralph/changed-files.txt', noDeslop: options.noDeslop, approvedHint: options.approvedHint ?? null })}\n`,
+    `${buildRalphAppendInstructions(task, {
+      changedFilesPath: '.omx/ralph/changed-files.txt',
+      noDeslop: options.noDeslop,
+      approvedHint: options.approvedHint ?? null,
+      wakeDirectives: options.wakeDirectives ?? [],
+    })}\n`,
   );
   return { instructionsPath, changedFilesPath: '.omx/ralph/changed-files.txt' };
 }
@@ -259,10 +277,11 @@ export async function ralphCommand(args: string[]): Promise<void> {
   const explicitTask = extractRalphTaskDescription(normalizedArgs);
   const task = explicitTask === 'ralph-cli-launch' ? approvedHint?.task ?? explicitTask : explicitTask;
   const noDeslop = normalizedArgs.some((arg) => arg.toLowerCase() === '--no-deslop');
+  const wakeDirectives = deriveWakeDirectives(await readActiveAbsorptionForm(cwd));
   const availableAgentTypes = await resolveAvailableAgentTypes(cwd);
   const staffingPlan = buildFollowupStaffingPlan('ralph', task, availableAgentTypes);
   await startMode('ralph', task, 50);
-  const sessionFiles = await writeRalphSessionFiles(cwd, task, { noDeslop, approvedHint });
+  const sessionFiles = await writeRalphSessionFiles(cwd, task, { noDeslop, approvedHint, wakeDirectives });
   await updateModeState('ralph', {
     current_phase: 'starting',
     canonical_progress_path: artifacts.canonicalProgressPath,
@@ -279,6 +298,7 @@ export async function ralphCommand(args: string[]): Promise<void> {
     approved_plan_path: approvedHint?.sourcePath,
     approved_test_spec_paths: approvedHint?.testSpecPaths ?? [],
     approved_deep_interview_spec_paths: approvedHint?.deepInterviewSpecPaths ?? [],
+    absorption_wake_directives: wakeDirectives,
     ...(artifacts.canonicalPrdPath ? { canonical_prd_path: artifacts.canonicalPrdPath } : {}),
   });
   if (artifacts.migratedPrd) {

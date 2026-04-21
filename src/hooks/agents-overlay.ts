@@ -25,6 +25,11 @@ import {
   packageRoot,
 } from "../utils/paths.js";
 import {
+  deriveWakeDirectives,
+  readActiveAbsorptionForm,
+  readMatrixSeed,
+} from "../absorption/storage.js";
+import {
   isPlanningComplete,
   readPlanningArtifacts,
 } from "../planning/artifacts.js";
@@ -301,6 +306,38 @@ async function readProjectMemorySummary(cwd: string): Promise<string> {
   }
 }
 
+async function readAbsorptionSummary(cwd: string): Promise<string> {
+  try {
+    const [seed, activeForm] = await Promise.all([
+      readMatrixSeed(cwd),
+      readActiveAbsorptionForm(cwd),
+    ]);
+    const parts: string[] = [];
+    if (seed?.gsd?.goals?.length) {
+      parts.push(`- Goals: ${seed.gsd.goals.slice(0, 2).join(" | ")}`);
+    }
+    if (seed?.gsd?.differentiators?.length) {
+      parts.push(
+        `- Differentiators: ${seed.gsd.differentiators.slice(0, 2).join(" | ")}`,
+      );
+    }
+    if (activeForm) {
+      parts.push(
+        `- Active Form: ${activeForm.name} [${activeForm.cocoonIds.join(", ")}]`,
+      );
+    }
+    const directives = deriveWakeDirectives(activeForm);
+    if (directives.length > 0) {
+      parts.push(
+        `- Wake Directives: ${directives.slice(0, 2).join(" | ")}`,
+      );
+    }
+    return parts.join("\n");
+  } catch {
+    return "";
+  }
+}
+
 function getCompactionInstructions(): string {
   return [
     "Before context compaction, preserve critical state:",
@@ -361,6 +398,7 @@ export async function generateOverlay(
     activeModes,
     notepadPriority,
     projectMemory,
+    absorptionSummary,
     codebaseMap,
     ralphActive,
     planningArtifacts,
@@ -370,6 +408,7 @@ export async function generateOverlay(
     readActiveModes(cwd, sessionId),
     readNotepadPriority(cwd),
     readProjectMemorySummary(cwd),
+    readAbsorptionSummary(cwd),
     generateCodebaseMap(cwd),
     isRalphActive(cwd, sessionId),
     readRalphPlanningArtifacts(cwd),
@@ -422,6 +461,14 @@ export async function generateOverlay(
     sections.push({
       key: "project_context",
       text: `**Project Context:**\n${truncate(projectMemory, 1000)}`,
+      optional: true,
+    });
+  }
+
+  if (absorptionSummary) {
+    sections.push({
+      key: "absorption_context",
+      text: `**Absorption Context:**\n${truncate(absorptionSummary, 700)}`,
       optional: true,
     });
   }

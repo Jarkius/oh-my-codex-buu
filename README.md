@@ -1,21 +1,90 @@
-# oh-my-codex (OMX)
+# oh-my-codex-buu
 
 <p align="center">
-  <img src="https://yeachan-heo.github.io/oh-my-codex-website/omx-character-nobg.png" alt="oh-my-codex character" width="280">
+  <img src="https://yeachan-heo.github.io/oh-my-codex-website/omx-character-nobg.png" alt="oh-my-codex-buu character" width="280">
   <br>
-  <em>Start Codex stronger, then let OMX add better prompts, workflows, and runtime help when the work grows.</em>
+  <em>Born from OMX, then evolved through selective cocoon absorption.</em>
 </p>
 
-[![npm version](https://img.shields.io/npm/v/oh-my-codex)](https://www.npmjs.com/package/oh-my-codex)
+[![npm version](https://img.shields.io/npm/v/oh-my-codex-buu)](https://www.npmjs.com/package/oh-my-codex-buu)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![Discord](https://img.shields.io/discord/1452487457085063218?color=5865F2&logo=discord&logoColor=white&label=Discord)](https://discord.gg/PUwSMR9XNk)
 
-**Website:** https://yeachan-heo.github.io/oh-my-codex-website/
-**Docs:** [Getting Started](./docs/getting-started.html) · [Agents](./docs/agents.html) · [Skills](./docs/skills.html) · [Integrations](./docs/integrations.html) · [Demo](./DEMO.md) · [OpenClaw guide](./docs/openclaw-integration.md)
-**Community:** [Discord](https://discord.gg/PUwSMR9XNk) — shared OMX/community server for oh-my-codex and related tooling.
+**Docs:** [Buu Philosophy](./docs/philosophy/buu.md) · [ADR: Absorption Model](./docs/adr/0001-buu-absorption-model.md) · [Demo](./DEMO.md)
 
-OMX is a workflow layer for [OpenAI Codex CLI](https://github.com/openai/codex).
+`oh-my-codex-buu` starts with the `oh-my-codex` runtime body and adds a stronger absorption model inspired by Cell and Majin Buu:
+
+- **Cell layer**: quarantine, digest, provenance, compatibility checking
+- **Buu layer**: cocoon whole capability bundles and selectively activate fused forms
+
+This repo is for building a Codex-native orchestration system that can absorb selected external workflows without pretending they were native from the start.
+
+## Current Direction
+
+The first milestone is intentionally conservative:
+
+1. preserve the working OMX core
+2. add a typed absorption registry
+3. document the philosophy and ADRs
+4. absorb selected `oh-my-qwen` ideas only after digestion
+
+## Why Buu
+
+`oh-my-qwen` already encodes a strong **Cell Gate**: fetch, inspect, approve, blend.
+
+That is valuable, but Cell is still a narrow absorber. Buu is the stronger model for this project because Buu can engulf whole systems, retain their powers in cocoons, and activate fused forms later. In software terms:
+
+- a **cocoon** stores absorbed capabilities with provenance
+- a **form** activates a chosen set of cocoons
+- the **Cell gate** still protects ingestion before activation
+
+## Early Modules
+
+- `src/absorption/registry.ts`
+- `src/absorption/cocoon.ts`
+- `src/absorption/forms.ts`
+- `src/absorption/quarantine.ts`
+- `src/absorption/storage.ts`
+
+## Command Surface
+
+The initial package keeps the OMX body and the `omx` CLI surface. The absorption model is an internal capability expansion, not a command rename.
+
+```bash
+npm install -g .
+omx
+```
+
+More specialized Buu-native workflows can come later, but the primary operator interface remains `omx`.
+
+The first real absorption operator surface is:
+
+```bash
+omx absorb seed-matrix --write
+omx absorb seed-apply
+omx absorb activate awake-core omx-core buu-absorption --name "Awake Core"
+omx absorb apply oracle-commander
+omx absorb list
+omx absorb current
+omx absorb package reloaded --write
+omx absorb import .omx/absorption/packages/reloaded.json
+```
+
+`seed-matrix` generates a GSD blueprint:
+
+- **Goals**: what the repo is trying to become
+- **Systems**: what execution/runtime surfaces already exist
+- **Differentiators**: what makes this OMX fork stronger than baseline
+
+When a local `oh-my-qwen` checkout is available, the seed also suggests Qwen-derived cocoons for the Cell Gate, Oracle memory loop, and controlled workflow pipeline.
+
+Named form profiles:
+
+- `matrix-core`
+- `cell-gate`
+- `oracle-commander`
+- `full-power`
 
 <table>
 <tr>

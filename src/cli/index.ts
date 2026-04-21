@@ -32,6 +32,7 @@ import { sessionCommand } from "./session-search.js";
 import { autoresearchCommand } from "./autoresearch.js";
 import { mcpParityCommand } from "./mcp-parity.js";
 import { adaptCommand } from "./adapt.js";
+import { absorbCommand } from "./absorb.js";
 import {
   MADMAX_FLAG,
   CODEX_BYPASS_FLAG,
@@ -137,7 +138,7 @@ function resolveDistScript(pkgRoot: string, scriptName: string): string {
 }
 
 const HELP = `
-oh-my-codex (omx) - Multi-agent orchestration for Codex CLI
+oh-my-codex (omx) - Multi-agent orchestration for Codex CLI with absorption extensions
 
 Usage:
   omx           Launch Codex CLI (HUD auto-attaches only when already inside tmux)
@@ -149,6 +150,7 @@ Usage:
   omx doctor --team  Check team/swarm runtime health diagnostics
   omx ask       Ask local provider CLI (claude|gemini) and write artifact output
   omx adapt     Scaffold OMX-owned adapter foundations for persistent external targets
+  omx absorb    Manage absorption registry, seed matrix, and fused form previews
   omx resume    Resume a previous interactive Codex session
   omx explore   Default read-only exploration entrypoint (may adaptively use sparkshell backend)
   omx session   Search prior local session transcripts and history artifacts
@@ -266,6 +268,7 @@ type CliCommand =
   | "cleanup"
   | "ask"
   | "adapt"
+  | "absorb"
   | "explore"
   | "sparkshell"
   | "team"
@@ -287,6 +290,7 @@ const NESTED_HELP_COMMANDS = new Set<CliCommand>([
   "ask",
   "cleanup",
   "adapt",
+  "absorb",
   "autoresearch",
   "agents",
   "agents-init",
@@ -682,6 +686,7 @@ export async function main(args: string[]): Promise<void> {
     "cleanup",
     "ask",
     "autoresearch",
+    "absorb",
     "explore",
     "sparkshell",
     "team",
@@ -758,6 +763,9 @@ export async function main(args: string[]): Promise<void> {
         break;
       case "adapt":
         await adaptCommand(args.slice(1));
+        break;
+      case "absorb":
+        await absorbCommand(args.slice(1));
         break;
       case "cleanup":
         await cleanupCommand(args.slice(1));

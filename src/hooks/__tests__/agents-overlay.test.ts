@@ -200,6 +200,50 @@ describe("generateOverlay", () => {
     assert.ok(!overlay.includes("Low priority thing"));
   });
 
+  it("generates overlay with absorption context when matrix seed and active form exist", async () => {
+    await mkdir(join(tempDir, ".omx", "absorption"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".omx", "absorption", "matrix-seed.json"),
+      JSON.stringify({
+        schemaVersion: "1.0",
+        generatedAt: "2026-04-19T00:00:00.000Z",
+        project: {
+          name: "oh-my-codex-buu",
+          root: tempDir,
+        },
+        gsd: {
+          goals: ["Keep OMX distributable as a Codex-native orchestration runtime."],
+          systems: ["CLI runtime and operator surface"],
+          differentiators: ["Buu absorption philosophy layered on top of the OMX body"],
+        },
+        suggestedCocoons: [],
+      }),
+    );
+    await writeFile(
+      join(tempDir, ".omx", "absorption", "active-form.json"),
+      JSON.stringify({
+        id: "awake-core",
+        name: "Awake Core",
+        cocoonIds: ["omx-core", "buu-absorption"],
+        activeCapabilities: [
+          {
+            id: "operator-surface",
+            name: "Operator surface",
+            description: "CLI, hooks, HUD, and stateful runtime controls.",
+            tags: ["cli", "hooks", "hud"],
+          },
+        ],
+        activatedAt: "2026-04-19T00:01:00.000Z",
+      }),
+    );
+
+    const overlay = await generateOverlay(tempDir, "test-session-absorb");
+    assert.ok(overlay.includes("Absorption Context"));
+    assert.ok(overlay.includes("Awake Core"));
+    assert.ok(overlay.includes("Keep OMX distributable"));
+    assert.ok(overlay.includes("Wake Directives"));
+  });
+
   it("enforces size cap (overlay <= 3500 chars)", async () => {
     const longText = "A".repeat(5000);
     await writeFile(
