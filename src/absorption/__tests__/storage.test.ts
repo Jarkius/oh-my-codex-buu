@@ -118,6 +118,7 @@ describe("absorption storage", () => {
       assert.equal(pkg.lane, "reloaded");
       assert.equal(pkg.activeForm?.id, "awake-core");
       assert.ok((pkg.wakeDirectives ?? []).length > 0);
+      assert.ok((pkg.planningPolicy?.summary ?? "").length > 0);
       assert.ok((pkg.projectMemory?.directives ?? []).length > 0);
     } finally {
       await rm(cwd, { recursive: true, force: true });

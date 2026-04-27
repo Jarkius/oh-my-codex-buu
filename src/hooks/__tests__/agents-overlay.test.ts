@@ -241,6 +241,7 @@ describe("generateOverlay", () => {
     assert.ok(overlay.includes("Absorption Context"));
     assert.ok(overlay.includes("Awake Core"));
     assert.ok(overlay.includes("Keep OMX distributable"));
+    assert.ok(overlay.includes("Planning Policy"));
     assert.ok(overlay.includes("Wake Directives"));
   });
 

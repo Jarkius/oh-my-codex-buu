@@ -115,6 +115,7 @@ describe("absorbCommand", () => {
       const current = JSON.parse(out.pop() ?? "{}") as {
         activeForm?: { id?: string };
         wakeDirectives?: string[];
+        planningPolicy?: { summary?: string };
       };
       assert.equal(current.activeForm?.id, "awake-core");
       assert.ok(
@@ -122,6 +123,7 @@ describe("absorbCommand", () => {
           /operator-facing runtime surface/i.test(directive),
         ),
       );
+      assert.match(current.planningPolicy?.summary ?? "", /runtime-surface-protective|stage-gated|quarantine-aware/i);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
@@ -155,10 +157,12 @@ describe("absorbCommand", () => {
       const pkg = JSON.parse(out.pop() ?? "{}") as {
         lane?: string;
         wakeDirectives?: string[];
+        planningPolicy?: { summary?: string };
         projectMemory?: { directives?: Array<{ directive?: string }> };
       };
       assert.equal(pkg.lane, "reloaded");
       assert.ok((pkg.wakeDirectives ?? []).length > 0);
+      assert.ok((pkg.planningPolicy?.summary ?? "").length > 0);
       assert.ok((pkg.projectMemory?.directives ?? []).length > 0);
     } finally {
       await rm(cwd, { recursive: true, force: true });

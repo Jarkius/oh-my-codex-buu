@@ -29,6 +29,7 @@ import {
   readActiveAbsorptionForm,
   readMatrixSeed,
 } from "../absorption/storage.js";
+import { derivePlanningPolicy } from "../absorption/policy.js";
 import {
   isPlanningComplete,
   readPlanningArtifacts,
@@ -325,6 +326,10 @@ async function readAbsorptionSummary(cwd: string): Promise<string> {
       parts.push(
         `- Active Form: ${activeForm.name} [${activeForm.cocoonIds.join(", ")}]`,
       );
+    }
+    const planningPolicy = derivePlanningPolicy(activeForm);
+    if (planningPolicy.summary !== "default planning policy") {
+      parts.push(`- Planning Policy: ${planningPolicy.summary}`);
     }
     const directives = deriveWakeDirectives(activeForm);
     if (directives.length > 0) {

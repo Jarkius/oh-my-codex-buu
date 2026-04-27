@@ -86,6 +86,20 @@ Named form profiles:
 - `oracle-commander`
 - `full-power`
 
+Memory architecture:
+
+- `.omx/` = repo-local operational memory
+- `ψ/memory/projects/` = durable project-scoped lessons
+- `ψ/memory/patterns/` = cross-project reusable patterns
+- `ψ/memory/gems/` = distilled high-signal permanent truths
+
+Promotion example:
+
+```bash
+omx memory promote ψ/memory/learnings/2026-04-21_active-forms-must-be-durable-policy.md --to pattern --tag absorption --tag policy
+omx memory promote ψ/memory/patterns/2026-04-21_active-forms-must-be-durable-policy.md --to gem
+```
+
 <table>
 <tr>
 <td><strong>🚨 CAUTION — RECOMMENDED DEFAULT ONLY: macOS or Linux with Codex CLI.</strong><br><br><strong>OMX is primarily designed and actively tuned for that path.</strong><br><strong>Native Windows and Codex App are not the default experience, may break or behave inconsistently, and currently receive less support.</strong></td>

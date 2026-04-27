@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { derivePlanningPolicy } from "./policy.js";
 import type { AbsorptionKind, AbsorptionRegistry, BuuCocoon, CocoonCapability } from "./registry.js";
 import type { BuuForm } from "./forms.js";
 
@@ -69,6 +70,7 @@ export interface AbsorptionPackage {
   matrixSeed?: MatrixSeed | null;
   activeForm?: ActiveAbsorptionForm | null;
   wakeDirectives?: string[];
+  planningPolicy?: ReturnType<typeof derivePlanningPolicy>;
   projectMemory?: Pick<ProjectMemory, "techStack" | "conventions" | "build" | "notes" | "directives">;
 }
 
@@ -377,6 +379,7 @@ export async function buildAbsorptionPackage(
     matrixSeed: seed,
     activeForm,
     wakeDirectives: deriveWakeDirectives(activeForm),
+    planningPolicy: derivePlanningPolicy(activeForm),
     projectMemory: {
       techStack: projectMemory.techStack,
       conventions: projectMemory.conventions,

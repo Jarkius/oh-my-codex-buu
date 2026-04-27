@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createCocoon } from "../absorption/cocoon.js";
 import { activateForm } from "../absorption/forms.js";
+import { derivePlanningPolicy } from "../absorption/policy.js";
 import { digestCocoon, rejectCocoon } from "../absorption/quarantine.js";
 import { findCocoon, registerCocoon, type AbsorptionRegistry } from "../absorption/registry.js";
 import {
@@ -284,6 +285,7 @@ export async function absorbCommand(
           seed,
           activeForm,
           wakeDirectives: deriveWakeDirectives(activeForm),
+          planningPolicy: derivePlanningPolicy(activeForm),
         },
         parsed.json,
         stdout,
@@ -452,6 +454,7 @@ export async function absorbCommand(
         {
           activeForm,
           wakeDirectives: deriveWakeDirectives(activeForm),
+          planningPolicy: derivePlanningPolicy(activeForm),
           projectMemory,
         },
         false,
@@ -483,6 +486,7 @@ export async function absorbCommand(
           profile,
           activeForm,
           wakeDirectives: deriveWakeDirectives(activeForm),
+          planningPolicy: derivePlanningPolicy(activeForm),
           projectMemory,
         },
         parsed.json,

@@ -33,6 +33,7 @@ import { autoresearchCommand } from "./autoresearch.js";
 import { mcpParityCommand } from "./mcp-parity.js";
 import { adaptCommand } from "./adapt.js";
 import { absorbCommand } from "./absorb.js";
+import { memoryPromoteCommand } from "./memory-promote.js";
 import {
   MADMAX_FLAG,
   CODEX_BYPASS_FLAG,
@@ -151,6 +152,7 @@ Usage:
   omx ask       Ask local provider CLI (claude|gemini) and write artifact output
   omx adapt     Scaffold OMX-owned adapter foundations for persistent external targets
   omx absorb    Manage absorption registry, seed matrix, and fused form previews
+  omx memory    Promote lessons into project, pattern, or gem memory
   omx resume    Resume a previous interactive Codex session
   omx explore   Default read-only exploration entrypoint (may adaptively use sparkshell backend)
   omx session   Search prior local session transcripts and history artifacts
@@ -269,6 +271,7 @@ type CliCommand =
   | "ask"
   | "adapt"
   | "absorb"
+  | "memory"
   | "explore"
   | "sparkshell"
   | "team"
@@ -291,6 +294,7 @@ const NESTED_HELP_COMMANDS = new Set<CliCommand>([
   "cleanup",
   "adapt",
   "absorb",
+  "memory",
   "autoresearch",
   "agents",
   "agents-init",
@@ -687,6 +691,7 @@ export async function main(args: string[]): Promise<void> {
     "ask",
     "autoresearch",
     "absorb",
+    "memory",
     "explore",
     "sparkshell",
     "team",
@@ -767,6 +772,12 @@ export async function main(args: string[]): Promise<void> {
       case "absorb":
         await absorbCommand(args.slice(1));
         break;
+      case "memory":
+        if (args[1] === "promote") {
+          await memoryPromoteCommand(args.slice(2));
+          break;
+        }
+        throw new Error("Usage: omx memory promote <source-file> --to <project|pattern|gem> [--project <slug>] [--tag <tag>] [--json]");
       case "cleanup":
         await cleanupCommand(args.slice(1));
         break;

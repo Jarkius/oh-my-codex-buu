@@ -96,8 +96,8 @@ describe('followup-planner', () => {
 
     assert.equal(plan.recommendedHeadcount, 3);
     assert.match(plan.staffingSummary, /quarantine \+ compatibility lane/);
-    assert.match(plan.policySummary, /quarantine-aware absorption active/);
-    assert.match(plan.policySummary, /persistent workflow policy active/);
+    assert.match(plan.policySummary, /quarantine-aware/);
+    assert.match(plan.policySummary, /stage-gated/);
     assert.match(plan.verificationPlan.summary, /Runtime-surface protection active/i);
     assert.ok(plan.verificationPlan.checkpoints.length >= 4);
   });

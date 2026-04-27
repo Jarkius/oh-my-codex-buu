@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { derivePlanningPolicy } from '../absorption/policy.js';
 import { codexPromptsDir, packageRoot } from '../utils/paths.js';
 import { resolveAgentReasoningEffort, type TeamReasoningEffort } from './model-contract.js';
 import { listAvailableRoles, routeTaskToRole } from './role-router.js';
@@ -264,15 +265,29 @@ export function buildFollowupStaffingPlan(
   const fallbackRole = options.fallbackRole ?? 'executor';
   const rawWorkerCount = Math.max(1, options.workerCount ?? (mode === 'team' ? 2 : 3));
   const wakeDirectives = options.wakeDirectives ?? [];
-  const normalizedWakeText = wakeDirectives.join(' ').toLowerCase();
-  const policySignals = {
-    quarantine:
-      /quarantine|digest foreign workflows|provenance/.test(normalizedWakeText),
-    persistentWorkflow:
-      /persist workflow state|explicit clarify -> plan -> execute -> verify|stage transitions/.test(normalizedWakeText),
-    protectRuntimeSurface:
-      /operator-facing runtime surface|omx as the operator-facing/.test(normalizedWakeText),
-  };
+  const planningPolicy = derivePlanningPolicy(
+    wakeDirectives.length > 0
+      ? {
+        id: 'wake-directives',
+        name: 'Wake Directives',
+        cocoonIds: [],
+        activeCapabilities: wakeDirectives.map((directive, index) => ({
+          id: directive.includes('Quarantine')
+            ? 'quarantine-gate'
+            : directive.includes('Persist workflow state')
+              ? 'controlled-workflow-pipeline'
+              : directive.includes('operator-facing runtime surface')
+                ? 'operator-surface'
+                : `wake-${index}`,
+          name: directive,
+          description: directive,
+          tags: ['wake-directive'],
+        })),
+        activatedAt: new Date(0).toISOString(),
+      }
+      : null,
+  );
+  const policySignals = planningPolicy.signals;
   const workerCount =
     mode === 'team' && (policySignals.quarantine || policySignals.persistentWorkflow)
       ? Math.max(rawWorkerCount, 3)
@@ -327,10 +342,10 @@ export function buildFollowupStaffingPlan(
   }
 
   const policySummary = [
-    policySignals.quarantine ? 'quarantine-aware absorption active' : '',
-    policySignals.persistentWorkflow ? 'persistent workflow policy active' : '',
-    policySignals.protectRuntimeSurface ? 'runtime-surface protection active' : '',
-  ].filter(Boolean).join('; ') || 'default execution policy';
+    planningPolicy.summary !== 'default planning policy'
+      ? planningPolicy.summary
+      : 'default execution policy',
+  ].join('');
 
   return {
     mode,
