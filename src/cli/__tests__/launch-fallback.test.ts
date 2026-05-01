@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -254,8 +254,9 @@ exit 0
       if (shouldSkipForSpawnPermissions(result.error)) return;
 
       const codexLog = await readFile(codexLogPath, 'utf-8');
+      const physicalWd = await realpath(wd);
       assert.match(codexLog, /codex:.*--dangerously-bypass-approvals-and-sandbox/);
-      assert.match(codexLog, new RegExp(`codex-pwd:${wd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+      assert.match(codexLog, new RegExp(`codex-pwd:${physicalWd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
       assert.equal(result.status, 0, result.error || result.stderr || result.stdout);
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -350,10 +351,11 @@ exit 0
 
       const tmuxLog = await readFile(tmuxLogPath, 'utf-8');
       const codexLog = await readFile(codexLogPath, 'utf-8');
+      const physicalWd = await realpath(wd);
       assert.match(tmuxLog, /\/bin\/sh/);
       assert.doesNotMatch(tmuxLog, /not-a-real-shell/);
       assert.match(codexLog, /codex:.*--dangerously-bypass-approvals-and-sandbox/);
-      assert.match(codexLog, new RegExp(`codex-pwd:${wd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+      assert.match(codexLog, new RegExp(`codex-pwd:${physicalWd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
       assert.equal(result.status, 0, result.error || result.stderr || result.stdout);
     } finally {
       await rm(wd, { recursive: true, force: true });

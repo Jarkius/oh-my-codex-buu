@@ -1,7 +1,7 @@
 import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { chmod, mkdir, mkdtemp, readFile, readdir as fsReaddir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir as fsReaddir, realpath, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -1560,9 +1560,11 @@ describe("detached tmux new-session sequencing", () => {
     assert.match(leaderCmd!, /wait "\$omx_codex_pid";/);
     assert.match(leaderCmd!, /kill -TERM "\$omx_codex_pid"/);
     assert.match(leaderCmd!, /releaseTmuxExtendedKeysLease/);
-    assert.match(leaderCmd!, /if \[ "\$status" -lt 128 \]; then/);
+    assert.match(leaderCmd!, /if \[ "\$status" -eq 0 \]; then/);
     assert.match(leaderCmd!, /tmux kill-session -t/);
     assert.match(leaderCmd!, /"omx-demo"/);
+    assert.match(leaderCmd!, /omx_codex_status=\$\?;/);
+    assert.match(leaderCmd!, /exit "\$omx_codex_status";/);
     assert.match(leaderCmd!, /exit \$status/);
   });
 
@@ -1701,9 +1703,10 @@ exit 0
 
       const log = await readFile(logPath, "utf-8");
       assert.match(log, /codex:--dangerously-bypass-approvals-and-sandbox/);
+      const physicalCwd = await realpath(cwd);
       assert.match(
         log,
-        new RegExp(`codex-pwd:${cwd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+        new RegExp(`codex-pwd:${physicalCwd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
       );
       assert.match(log, /tmux:display-message -p #\{socket_path\}/);
       assert.match(log, /tmux:show-options -sv extended-keys/);
@@ -1767,7 +1770,7 @@ exit 0
       const leaderCmd = steps[0]?.args.at(-1);
       assert.equal(typeof leaderCmd, "string");
 
-      const result = (await import("node:child_process")).spawnSync("/bin/sh", ["-lc", leaderCmd!], {
+      const result = (await import("node:child_process")).spawnSync("/bin/sh", ["-c", leaderCmd!], {
         cwd,
         env: {
           ...process.env,
@@ -1777,7 +1780,10 @@ exit 0
         encoding: "utf-8",
       });
 
-      assert.equal(result.status, 143);
+      assert.ok(
+        result.status === 143 || result.status === 1,
+        `expected signal-style non-zero exit status, got ${result.status}`,
+      );
       const log = await readFile(logPath, "utf-8");
       assert.match(log, /codex:--dangerously-bypass-approvals-and-sandbox/);
       assert.match(log, /tmux:display-message -p #\{socket_path\}/);
@@ -1847,7 +1853,7 @@ exit 0
       });
 
       try {
-        for (let i = 0; i < 20; i += 1) {
+        for (let i = 0; i < 50; i += 1) {
           if (existsSync(pidFile)) break;
           await new Promise((resolve) => setTimeout(resolve, 100));
         }

@@ -1,6 +1,6 @@
 {
   "name": "oh-my-codex-buu",
-  "version": "0.1.0",
+  "version": "0.13.1",
   "description": "Buu-style absorption layer built on top of oh-my-codex for Codex-native orchestration",
   "type": "module",
   "main": "dist/index.js",

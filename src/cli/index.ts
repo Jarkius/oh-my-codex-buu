@@ -1699,7 +1699,7 @@ function buildDetachedSessionLeaderCommand(
     "fi;",
     'exec 3<&- 2>/dev/null || true;',
     buildTmuxExtendedKeysReleaseShellSnippet(cwd),
-    'if [ "$status" -lt 128 ]; then',
+    'if [ "$status" -eq 0 ]; then',
     `tmux kill-session -t "${escapeShellDoubleQuotedValue(sessionName)}" >/dev/null 2>&1 || true;`,
     "fi;",
     "exit $status;",
@@ -1708,6 +1708,8 @@ function buildDetachedSessionLeaderCommand(
     `${codexCmd} <&3 &`,
     "omx_codex_pid=$!;",
     'wait "$omx_codex_pid";',
+    "omx_codex_status=$?;",
+    'exit "$omx_codex_status";',
   ].join(" ");
   return `/bin/sh -c ${quoteShellArg(wrapped)}`;
 }

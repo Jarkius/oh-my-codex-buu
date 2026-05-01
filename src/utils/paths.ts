@@ -19,15 +19,7 @@ export const OMX_ENTRY_PATH_ENV = "OMX_ENTRY_PATH";
 export const OMX_STARTUP_CWD_ENV = "OMX_STARTUP_CWD";
 
 function resolveLauncherPath(rawPath: string, baseCwd: string): string {
-  const absolutePath = isAbsolute(rawPath) ? rawPath : resolve(baseCwd, rawPath);
-  if (!existsSync(absolutePath)) return absolutePath;
-  try {
-    return typeof realpathSync.native === "function"
-      ? realpathSync.native(absolutePath)
-      : realpathSync(absolutePath);
-  } catch {
-    return absolutePath;
-  }
+  return isAbsolute(rawPath) ? rawPath : resolve(baseCwd, rawPath);
 }
 
 export function canonicalizeComparablePath(rawPath: string): string {
